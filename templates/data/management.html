@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, empty %}
+{% block title %}Data management{% endblock %}
+{% block crumb %}Data Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Data management</h1>
+    <div class="page-header__sub">
+      Import the UCI Online Retail file, then review the validation report for each batch.
+      Imports are idempotent: a line already in the table is skipped, not duplicated.
+    </div>
+  </div>
+</div>
+
+{% if not has_data %}
+<div class="notice notice--info" style="margin-bottom:16px;">
+  The transactions table is empty. Download <em>Online Retail.xlsx</em> from the UCI Machine
+  Learning Repository (dataset 352) and upload it below.
+</div>
+{% endif %}
+
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Upload a dataset file</span></div>
+  <div class="panel__body">
+    <form method="post" action="{{ url_for('data_management.import_file') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="dataset">Dataset file (.csv or .xlsx)</label>
+          <input type="file" id="dataset" name="dataset" accept=".csv,.xlsx" required>
+          <span class="field__hint">Maximum {{ (config.MAX_CONTENT_LENGTH / 1048576)|int }} MB. The file is validated before any row is stored.</span>
+        </div>
+        <div class="field">
+          <label for="source_note">Source note (optional)</label>
+          <input type="text" id="source_note" name="source_note" placeholder="e.g. UCI Online Retail, downloaded 12 Aug 2026">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn--primary" type="submit" data-confirm="Import this file into the transactions table?">Validate and import</button>
+      </div>
+    </form>
+  </div>
+  <div class="panel__footer">
+    Rejected rows are exact duplicates or lines without an invoice number, stock code, date,
+    numeric quantity or numeric price. The count is reported per batch.
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Import history</span></div>
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>Batch</th><th>File</th><th>Status</th><th class="num">Rows in file</th>
+              <th class="num">Imported</th><th class="num">Skipped</th><th>When</th><th>By</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for batch in batches %}
+          <tr>
+            <td>#{{ batch.id }}</td>
+            <td class="mono">{{ batch.file_name }}</td>
+            <td>{{ status_badge(batch.status) }}</td>
+            <td class="num">{{ batch.row_count|num }}</td>
+            <td class="num">{{ batch.imported_rows|num }}</td>
+            <td class="num muted">{{ batch.rejected_rows|num }}</td>
+            <td class="muted">{{ batch.created_at|dt }}</td>
+            <td class="muted">{{ batch.imported_by or '—' }}</td>
+            <td><a class="btn btn--small" href="{{ url_for('data_management.batch_detail', batch_id=batch.id) }}">Report</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">{{ empty('No imports yet', 'Upload the dataset file to create the first import batch.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

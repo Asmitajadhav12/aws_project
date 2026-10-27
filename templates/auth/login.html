@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in &middot; Transaction Behaviour Review</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <h1>Transaction Behaviour Review</h1>
+    <p class="sub">Sign in to review flagged transactions and rule performance.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="notices">
+        {% for category, message in messages %}
+        <div class="notice notice--{{ category if category in ['success','error','warning','info'] else 'info' }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    {% if error %}<div class="notice notice--error" style="margin-bottom:14px;">{{ error }}</div>{% endif %}
+
+    <form method="post" action="{{ url_for('auth.login', next=request.args.get('next')) }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" value="{{ username or '' }}" autocomplete="username" required autofocus>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn btn--primary" type="submit">Sign in</button>
+    </form>
+
+    <div class="login-foot">
+      Accounts are created from the command line
+      (<code>flask --app app create-admin</code>). There is no self-registration.
+    </div>
+  </div>
+</div>
+</body>
+</html>

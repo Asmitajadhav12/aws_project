@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Not permitted{% endblock %}
+{% block crumb %}Error 403{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">You do not have permission for that action</span></div>
+  <div class="panel__body">
+    <p style="margin-top:0;">
+      Your account does not hold the role required for this page. Administrative actions
+      (data import, rule configuration, running analyses) require the <strong>admin</strong> role.
+    </p>
+    <p class="muted" style="margin-bottom:0;">If you believe this is a mistake, ask an administrator to check your account.</p>
+  </div>
+  <div class="panel__footer"><a href="{{ url_for('dashboard.overview') }}">Return to the overview</a></div>
+</div>
+{% endblock %}

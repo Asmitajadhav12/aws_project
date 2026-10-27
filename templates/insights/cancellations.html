@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty %}
+{% block title %}Cancellation analysis{% endblock %}
+{% block crumb %}Cancellation Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Cancellation &amp; return analysis</h1>
+    <div class="page-header__sub">
+      The dataset has no cancellation reason field. The only defensible signal is a negative
+      quantity on an invoice number beginning with "C", which is treated as a
+      <em>cancellation proxy</em> — not proof that a customer returned the goods.
+    </div>
+  </div>
+</div>
+
+<div class="notice notice--warning" style="margin-bottom:16px;">
+  Limitation: an invoice line with a negative quantity may reflect a cancellation, a correction,
+  or an adjustment. Missing customer IDs also mean customer-level figures cover only identified
+  customers, so the shares below describe the recorded data, not the retailer's true return rate.
+</div>
+
+{% set s = summary %}
+<div class="stat-row">
+  <div class="stat">
+    <div class="stat__label">Transaction lines</div>
+    <div class="stat__value">{{ s.total_lines|num }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Cancellation lines</div>
+    <div class="stat__value">{{ s.cancellation_lines|num }}</div>
+    <div class="stat__note">invoice number starting with C</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Cancellation invoices</div>
+    <div class="stat__value">{{ s.cancellation_invoices|num }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Customers with a cancellation</div>
+    <div class="stat__value">{{ s.customers_with_cancellations|num }}</div>
+    <div class="stat__note">identified customers only</div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="panel">
+    <div class="panel__header"><span class="panel__title">Cancellation lines by month</span></div>
+    <div class="panel__body panel__body--flush">
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Month</th><th class="num">Cancellation lines</th><th class="num">Total lines</th><th class="num">Share</th></tr></thead>
+          <tbody>
+            {% for row in by_month %}
+            <tr>
+              <td class="mono">{{ row.month }}</td>
+              <td class="num">{{ row.cancellation_lines|num }}</td>
+              <td class="num muted">{{ row.total_lines|num }}</td>
+              <td class="num">{{ ((100 * (row.cancellation_lines or 0) / row.total_lines) if row.total_lines else 0)|round(1) }}%</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">{{ empty('No data imported', 'Import the dataset to see the monthly pattern.') }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">Customers with most cancellation lines</span></div>
+      <div class="panel__body panel__body--flush">
+        <table class="data">
+          <thead><tr><th>Customer</th><th class="num">Lines</th><th class="num">Value</th></tr></thead>
+          <tbody>
+            {% for row in top_customers %}
+            <tr>
+              <td class="mono"><a href="{{ url_for('transactions.index', customer=row.customer_id) }}">{{ row.customer_id }}</a></td>
+              <td class="num">{{ row.cancellation_lines|num }}</td>
+              <td class="num neg">{{ row.cancelled_value|money }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">{{ empty('No cancellations recorded', 'Nothing to show yet.') }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">Products with most cancellation lines</span></div>
+      <div class="panel__body panel__body--flush">
+        <table class="data">
+          <thead><tr><th>Stock code</th><th>Description</th><th class="num">Lines</th></tr></thead>
+          <tbody>
+            {% for row in top_products %}
+            <tr>
+              <td class="mono">{{ row.stock_code }}</td>
+              <td>{{ row.description or '—' }}</td>
+              <td class="num">{{ row.cancellation_lines|num }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">{{ empty('No cancellations recorded', 'Nothing to show yet.') }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

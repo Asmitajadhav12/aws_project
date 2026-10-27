@@ -1,0 +1,30 @@
+# --- Secrets -------------------------------------------------------------
+.env
+.env.*
+!.env.example
+instance/
+*.pem
+
+# --- Python --------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Data files ----------------------------------------------------------
+# The raw UCI Online Retail file is NOT committed (see data/README.md).
+data/*.xlsx
+data/*.xls
+data/*.csv
+!data/README.md
+
+# --- Editor / OS ---------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

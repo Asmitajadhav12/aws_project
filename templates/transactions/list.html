@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty %}
+{% block title %}Transactions{% endblock %}
+{% block crumb %}Transactions{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Transactions</h1>
+    <div class="page-header__sub">
+      Search the imported invoice lines. Filter by invoice, customer, product, country or date range,
+      or restrict the list to invoices that carry at least one alert.
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Filters</span><span class="panel__meta">{{ total|num }} matching line(s)</span></div>
+  <div class="panel__body">
+    <form method="get" action="{{ url_for('transactions.index') }}" class="filter-bar">
+      <div class="field"><label for="invoice">Invoice no.</label>
+        <input type="text" id="invoice" name="invoice" value="{{ filters.invoice }}" placeholder="e.g. 536365"></div>
+      <div class="field"><label for="customer">Customer ID</label>
+        <input type="text" id="customer" name="customer" value="{{ filters.customer }}" placeholder="e.g. 17850"></div>
+      <div class="field"><label for="stock">Stock code</label>
+        <input type="text" id="stock" name="stock" value="{{ filters.stock }}" placeholder="e.g. 22423"></div>
+      <div class="field field--wide"><label for="country">Country</label>
+        <select id="country" name="country">
+          <option value="">All countries</option>
+          {% for country in countries %}
+          <option value="{{ country }}" {{ 'selected' if filters.country == country }}>{{ country }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="field"><label for="date_from">From</label>
+        <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}"></div>
+      <div class="field"><label for="date_to">To</label>
+        <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}"></div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <label class="checkbox"><input type="checkbox" name="only_flagged" value="1" {{ 'checked' if filters.only_flagged }}> Only invoices with alerts</label>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn--primary" type="submit">Apply</button>
+          <a class="btn" href="{{ url_for('transactions.index') }}">Reset</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Invoice</th><th>Date</th><th>Stock code</th><th>Description</th>
+            <th class="num">Qty</th><th class="num">Unit price</th><th class="num">Line value</th>
+            <th>Customer</th><th>Country</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td class="mono">
+              <a href="{{ url_for('transactions.invoice_detail', invoice_number=row.invoice_number) }}">{{ row.invoice_number }}</a>
+              {% if row.is_cancellation %}<span class="badge badge--muted">C</span>{% endif %}
+            </td>
+            <td class="muted">{{ row.invoice_date|dt }}</td>
+            <td class="mono">{{ row.stock_code }}</td>
+            <td>{{ row.description or '—' }}</td>
+            <td class="num {{ 'neg' if row.quantity < 0 }}">{{ row.quantity|num }}</td>
+            <td class="num">{{ row.unit_price|money }}</td>
+            <td class="num">{{ row.line_value|money }}</td>
+            <td>{{ row.customer_id or '—' }}</td>
+            <td class="muted">{{ row.country or '—' }}</td>
+            <td>{% if row.flagged %}<span class="badge badge--open">Alert</span>{% endif %}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10">{{ empty('No matching lines', 'Adjust the filters, or import a dataset from Data Management if the table is empty.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel__footer">
+    <div class="pagination">
+      <span>Page {{ page }} of {{ total_pages }}</span>
+      {% if page > 1 %}
+      <a href="{{ url_for('transactions.index', page=page-1, invoice=filters.invoice, customer=filters.customer, stock=filters.stock, country=filters.country, date_from=filters.date_from, date_to=filters.date_to, only_flagged='1' if filters.only_flagged else '') }}">Previous</a>
+      {% endif %}
+      {% if page < total_pages %}
+      <a href="{{ url_for('transactions.index', page=page+1, invoice=filters.invoice, customer=filters.customer, stock=filters.stock, country=filters.country, date_from=filters.date_from, date_to=filters.date_to, only_flagged='1' if filters.only_flagged else '') }}">Next</a>
+      {% endif %}
+      <span class="muted">{{ per_page }} lines per page</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

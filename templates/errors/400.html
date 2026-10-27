@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Request not accepted{% endblock %}
+{% block crumb %}Error 400{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">The request was not accepted</span></div>
+  <div class="panel__body">
+    <p style="margin-top:0;">{{ message or 'The request could not be processed.' }}</p>
+    <p class="muted" style="margin-bottom:0;">
+      If you were submitting a form, the security token may have expired. Reload the page and try
+      again — your session is still active.
+    </p>
+  </div>
+  <div class="panel__footer"><a href="{{ url_for('dashboard.overview') }}">Return to the overview</a></div>
+</div>
+{% endblock %}

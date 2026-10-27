@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty %}
+{% block title %}Product trends{% endblock %}
+{% block crumb %}Product Trends{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Product demand comparison</h1>
+    <div class="page-header__sub">
+      Compares the eligible sale quantity of each product between two calendar months.
+      A change in demand is a commercial observation, not evidence of suspicious activity.
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Comparison periods</span></div>
+  <div class="panel__body">
+    <form method="get" action="{{ url_for('insights.product_trends') }}" class="filter-bar">
+      <div class="field field--wide">
+        <label for="previous">Earlier month</label>
+        <select id="previous" name="previous" data-autosubmit>
+          {% for month in months %}
+          <option value="{{ month }}" {{ 'selected' if previous == month }}>{{ month }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field field--wide">
+        <label for="current">Later month</label>
+        <select id="current" name="current" data-autosubmit>
+          {% for month in months %}
+          <option value="{{ month }}" {{ 'selected' if current == month }}>{{ month }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn btn--primary" type="submit">Compare</button>
+      </div>
+    </form>
+    <p class="muted" style="font-size:12px; margin-bottom:0;">
+      Quantity change = later month quantity &minus; earlier month quantity. Percentage change is
+      left blank when the earlier month had no sales of that product, because the denominator
+      would be zero.
+    </p>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header">
+    <span class="panel__title">{{ previous or '—' }} &rarr; {{ current or '—' }}</span>
+    <span class="panel__meta">25 largest changes by absolute quantity</span>
+  </div>
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>Stock code</th><th>Description</th><th class="num">{{ previous or 'Earlier' }}</th>
+              <th class="num">{{ current or 'Later' }}</th><th class="num">Change</th><th class="num">Change %</th></tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td class="mono">{{ row.stock_code }}</td>
+            <td>{{ row.description or '—' }}</td>
+            <td class="num muted">{{ row.previous_qty|num }}</td>
+            <td class="num">{{ row.current_qty|num }}</td>
+            <td class="num {{ 'pos' if row.change > 0 else 'neg' }}">{{ row.change|num }}</td>
+            <td class="num {{ 'pos' if row.change_pct and row.change_pct > 0 else 'neg' }}">
+              {{ (row.change_pct ~ '%') if row.change_pct is not none else 'n/a' }}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">{{ empty('Nothing to compare', 'Import the dataset and choose two months that both contain sales.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, empty %}
+{% block title %}Analysis run #{{ run.id }}{% endblock %}
+{% block crumb %}Analysis History / Run #{{ run.id }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Analysis run #{{ run.id }}</h1>
+    <div class="page-header__sub">
+      {{ run.rule_name or 'Rule removed' }} &middot; {{ run.run_type }} &middot;
+      started {{ run.started_at|dt }} by {{ run.initiated_by or 'unknown user' }}
+    </div>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn" href="{{ url_for('analysis.history') }}">Back to history</a>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="stat__label">Status</div>
+    <div class="stat__value">{{ status_badge(run.status) }}</div>
+    <div class="stat__note">completed {{ run.completed_at|dt }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Alerts produced</div>
+    <div class="stat__value">{{ (run.summary.alert_count if run.summary else 0)|num }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Records evaluated</div>
+    <div class="stat__value">{{ (run.summary.evaluated_rows if run.summary else 0)|num }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Rule version</div>
+    <div class="stat__value">{{ run.rule_version_id or '—' }}</div>
+    <div class="stat__note">configuration snapshot stored with the run</div>
+  </div>
+</div>
+
+{% if run.error_message %}
+<div class="notice notice--error" style="margin-bottom:16px;">{{ run.error_message }}</div>
+{% endif %}
+
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Parameters used</span></div>
+  <div class="panel__body">
+    {% if run.parameters_snapshot %}
+    <table class="data">
+      <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+      <tbody>
+        {% for name, value in run.parameters_snapshot.items() %}
+        <tr><td class="mono">{{ name }}</td><td class="mono">{{ value }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted" style="margin:0;">No parameter snapshot was stored for this run.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header">
+    <span class="panel__title">Alerts from this run</span>
+    <span class="panel__meta">{{ alerts|length }} shown</span>
+  </div>
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Alert</th><th>Invoice</th><th>Stock</th><th class="num">Observed</th>
+                   <th class="num">Threshold</th><th>Status</th><th>Explanation</th></tr></thead>
+        <tbody>
+          {% for alert in alerts %}
+          <tr>
+            <td><a href="{{ url_for('alerts.detail', alert_id=alert.id) }}">#{{ alert.id }}</a></td>
+            <td class="mono">{{ alert.invoice_number or '—' }}</td>
+            <td class="mono">{{ alert.stock_code or '—' }}</td>
+            <td class="num">{{ alert.observed_value|num }}</td>
+            <td class="num muted">{{ alert.threshold_value|num }}</td>
+            <td>{{ status_badge(alert.review_status) }}</td>
+            <td class="muted" style="max-width:520px;">{{ alert.explanation }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7">{{ empty('No alerts in this run', 'The rule produced no breaches at the configured threshold.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

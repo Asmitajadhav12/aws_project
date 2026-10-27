@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Rule configuration{% endblock %}
+{% block crumb %}Rule configuration{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Rule configuration</h1>
+    <div class="page-header__sub">
+      Each rule has explicit parameters. Saving a change records a new configuration version;
+      alerts already generated keep the version they were created with.
+    </div>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn" href="{{ url_for('rules.tuning_lab') }}">Rule Tuning Lab</a>
+  </div>
+</div>
+
+{% if not rules %}
+<div class="panel"><div class="panel__body">
+  No rules found. Execute <code>database/schema.sql</code> — it inserts the default rule set.
+</div></div>
+{% endif %}
+
+<div class="panel">
+  {% for rule in rules %}
+  <div class="rule-card">
+    <div class="rule-card__head">
+      <div>
+        <h2>{{ rule.rule_name }}</h2>
+        <div class="rule-card__code">{{ rule.rule_code }} &middot; level: {{ rule.level }}</div>
+      </div>
+      <div style="text-align:right;">
+        {% if rule.is_enabled %}
+          <span class="badge badge--reviewed">Enabled</span>
+        {% else %}
+          <span class="badge badge--muted">Disabled</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <p class="rule-card__summary">{{ rule.description }}</p>
+    {% if rule.meta and rule.meta.formula %}
+    <div style="margin-bottom:12px;"><span class="formula">{{ rule.meta.formula }}</span></div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('rules.update', rule_id=rule.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        {% for name, value in rule.parameters.items() %}
+        <div class="field">
+          <label for="{{ rule.rule_code }}-{{ name }}">
+            {{ rule.meta.parameter_labels[name] if rule.meta and rule.meta.parameter_labels and name in rule.meta.parameter_labels else name }}
+          </label>
+          {% if value is sameas true or value is sameas false %}
+          <label class="checkbox">
+            <input type="checkbox" id="{{ rule.rule_code }}-{{ name }}" name="{{ name }}" value="1" {{ 'checked' if value }}>
+            {{ 'Use only earlier lines as the baseline' if name == 'prior_only' else name }}
+          </label>
+          {% else %}
+          <input type="number" step="any" id="{{ rule.rule_code }}-{{ name }}" name="{{ name }}" value="{{ value }}">
+          {% endif %}
+        </div>
+        {% endfor %}
+        <div class="field">
+          <label for="{{ rule.rule_code }}-enabled">Rule state</label>
+          <label class="checkbox">
+            <input type="checkbox" id="{{ rule.rule_code }}-enabled" name="is_enabled" value="1" {{ 'checked' if rule.is_enabled }}>
+            Enabled
+          </label>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn--primary" type="submit">Save configuration</button>
+        <span class="muted" style="font-size:12px;">
+          Last changed {{ rule.updated_at|dt }}{% if rule.updated_by %} by {{ rule.updated_by }}{% endif %}
+        </span>
+      </div>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

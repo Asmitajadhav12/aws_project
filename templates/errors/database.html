@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Database not available{% endblock %}
+{% block crumb %}Database not available{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">The application cannot reach MySQL</span></div>
+  <div class="panel__body">
+    <p style="margin-top:0;">{{ message }}</p>
+    <h3 style="margin:18px 0 8px;">Checklist</h3>
+    <ol style="margin:0; padding-left:18px; color:var(--text-muted);">
+      <li>Is the MySQL service running on the machine? (Windows: <code>services.msc</code> &rarr; MySQL80.)</li>
+      <li>Has <code>database/schema.sql</code> been executed in MySQL Workbench or the command line?</li>
+      <li>Do <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>DB_PASSWORD</code> and <code>DB_NAME</code> in your <code>.env</code> file match the database you created?</li>
+      <li>Does the database user have privileges on that schema?</li>
+    </ol>
+    <p class="muted" style="margin-bottom:0;">Full instructions: <code>database/README.md</code>.</p>
+  </div>
+  <div class="panel__footer"><a href="{{ url_for('dashboard.overview') }}">Try again</a></div>
+</div>
+{% endblock %}

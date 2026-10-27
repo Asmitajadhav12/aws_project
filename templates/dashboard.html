@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, empty %}
+{% block title %}Overview{% endblock %}
+{% block crumb %}Overview{% endblock %}
+
+{% block content %}
+{% set t = stats.totals %}
+{% set a = stats.alerts %}
+<div class="page-header">
+  <div>
+    <h1>Overview</h1>
+    <div class="page-header__sub">
+      Dataset scale, current alert workload and the most recent detection runs.
+      Counts come from the imported transactions table, not from a sample.
+    </div>
+  </div>
+  {% if g.user.role == ROLE_ADMIN %}
+  <div class="page-header__actions">
+    <a class="btn" href="{{ url_for('data_management.index') }}">Manage data</a>
+    <a class="btn btn--primary" href="{{ url_for('rules.tuning_lab') }}">Open Rule Tuning Lab</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if not has_data %}
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">No transaction data yet</span></div>
+  <div class="panel__body">
+    <p style="margin:0 0 10px;">
+      The <code>transactions</code> table is empty, so every statistic on this page is zero.
+      Import the UCI Online Retail file before running any analysis.
+    </p>
+    <ol style="margin:0; padding-left:18px; color:var(--text-muted);">
+      <li>Download <em>Online Retail.xlsx</em> from the UCI Machine Learning Repository.</li>
+      <li>{% if g.user.role == ROLE_ADMIN %}Open <a href="{{ url_for('data_management.index') }}">Data Management</a> and upload the file.{% else %}Ask an administrator to import the file.{% endif %}</li>
+      <li>Run a detection pass from Analysis History, then review the alerts.</li>
+    </ol>
+  </div>
+</div>
+{% endif %}
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="stat__label">Transaction lines</div>
+    <div class="stat__value">{{ t.line_count|num }}</div>
+    <div class="stat__note">{{ t.first_date|date_only }} &rarr; {{ t.last_date|date_only }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Invoices</div>
+    <div class="stat__value">{{ t.invoices|num }}</div>
+    <div class="stat__note">distinct invoice numbers</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Customers</div>
+    <div class="stat__value">{{ t.customers|num }}</div>
+    <div class="stat__note">records with a customer ID</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Products</div>
+    <div class="stat__value">{{ t.products|num }}</div>
+    <div class="stat__note">distinct stock codes</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Value of valid sale lines</div>
+    <div class="stat__value">{{ t.sale_value|money }}</div>
+    <div class="stat__note">cancellations excluded</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Cancellation lines</div>
+    <div class="stat__value">{{ t.cancellation_lines|num }}</div>
+    <div class="stat__note">invoice numbers starting with C</div>
+  </div>
+</div>
+
+<div class="split">
+  <div>
+    <div class="panel">
+      <div class="panel__header">
+        <span class="panel__title">Alert workload</span>
+        <span class="panel__meta">{{ a.total|num }} alert(s) in total</span>
+      </div>
+      <div class="panel__body panel__body--flush">
+        <table class="data">
+          <thead>
+            <tr><th>Rule</th><th class="num">Alerts</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for row in stats.alerts_by_rule %}
+            <tr>
+              <td>
+                <div>{{ row.rule_name }}</div>
+                <div class="mono muted">{{ row.rule_code }}</div>
+              </td>
+              <td class="num">{{ row.alert_count|num }}</td>
+              <td class="num">
+                <a class="btn btn--small" href="{{ url_for('alerts.index', rule=row.rule_code) }}">Review</a>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">{{ empty('No rules configured', 'Run database/schema.sql to insert the default rule set.') }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="panel__footer">
+        Open {{ a.open_count|num }} &middot; Under review {{ a.review_count|num }} &middot; Reviewed {{ a.reviewed_count|num }}
+        &nbsp;|&nbsp; "Reviewed" means the investigation is closed, not that fraud was proven.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header">
+        <span class="panel__title">Recent analysis runs</span>
+        <a class="btn btn--small" href="{{ url_for('analysis.history') }}">Full history</a>
+      </div>
+      <div class="panel__body panel__body--flush">
+        <table class="data">
+          <thead>
+            <tr><th>Run</th><th>Rule</th><th>Status</th><th class="num">Alerts</th><th>Started</th></tr>
+          </thead>
+          <tbody>
+            {% for run in stats.recent_runs %}
+            <tr>
+              <td><a href="{{ url_for('analysis.run_detail', run_id=run.id) }}">#{{ run.id }}</a></td>
+              <td>{{ run.rule_name or '—' }}</td>
+              <td>{{ status_badge(run.status) }}</td>
+              <td class="num">{{ (run.summary.alert_count if run.summary else 0)|num }}</td>
+              <td class="muted">{{ run.started_at|dt }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">{{ empty('No analysis has been run yet', 'An administrator can run a detection pass from Analysis History.') }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">What this system does</span></div>
+      <div class="panel__body">
+        <p style="margin-top:0;">
+          It applies {{ stats.rule_count }} transparent, configurable rules to historical retail
+          transactions and shows <em>why</em> each flagged record was flagged: the observed value,
+          the threshold, and the rule that produced it.
+        </p>
+        <p class="muted" style="margin-bottom:0;">
+          There is no machine learning here, and no record is described as fraud. The output is a
+          prioritised list of transactions that may deserve manual review.
+        </p>
+      </div>
+    </div>
+
+    {% if g.user.role == ROLE_ADMIN %}
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">Run a detection pass</span></div>
+      <div class="panel__body">
+        <form method="post" action="{{ url_for('analysis.run') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field" style="margin-bottom:12px;">
+            <label for="rule_code">Rule</label>
+            <select id="rule_code" name="rule_code">
+              <option value="HIGH_LINE_QTY">Unusually high line quantity</option>
+              <option value="HIGH_INVOICE_VALUE">High-value invoice</option>
+              <option value="PRODUCT_QTY_IQR">Quantity far above product baseline</option>
+            </select>
+          </div>
+          <button class="btn btn--primary" type="submit">Run with current thresholds</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Unexpected error{% endblock %}
+{% block crumb %}Error 500{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Something went wrong on the server</span></div>
+  <div class="panel__body">
+    <p style="margin-top:0;">
+      The error has been logged. No stack trace, SQL statement or credential is shown here on
+      purpose. Try the action again, and if it keeps failing check the server log for the
+      timestamp of this request.
+    </p>
+  </div>
+  <div class="panel__footer"><a href="{{ url_for('dashboard.overview') }}">Return to the overview</a></div>
+</div>
+{% endblock %}

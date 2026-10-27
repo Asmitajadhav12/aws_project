@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, empty %}
+{% block title %}Analysis history{% endblock %}
+{% block crumb %}Analysis History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Analysis history</h1>
+    <div class="page-header__sub">
+      Every detection pass is recorded with its parameters, status and outcome, so results can be
+      reproduced later even after the rule configuration changes.
+    </div>
+  </div>
+</div>
+
+{% if g.user.role == ROLE_ADMIN %}
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Run a new detection pass</span></div>
+  <div class="panel__body">
+    <form method="post" action="{{ url_for('analysis.run') }}" class="filter-bar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field field--wide">
+        <label for="rule_code">Rule to evaluate</label>
+        <select id="rule_code" name="rule_code">
+          <option value="HIGH_LINE_QTY">Unusually high line quantity</option>
+          <option value="HIGH_INVOICE_VALUE">High-value invoice</option>
+          <option value="PRODUCT_QTY_IQR">Quantity far above product baseline</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn btn--primary" type="submit">Run analysis</button>
+      </div>
+    </form>
+    <p class="muted" style="font-size:12px; margin-bottom:0;">
+      The run uses the thresholds currently saved in Rule configuration and stores every alert
+      with a snapshot of the rule version that produced it.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<div class="panel">
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>Run</th><th>Type</th><th>Rule</th><th>Status</th>
+              <th class="num">Alerts</th><th class="num">Evaluated</th>
+              <th>Started</th><th>Completed</th><th>By</th></tr>
+        </thead>
+        <tbody>
+          {% for run in runs %}
+          <tr>
+            <td><a href="{{ url_for('analysis.run_detail', run_id=run.id) }}">#{{ run.id }}</a></td>
+            <td class="muted">{{ run.run_type }}</td>
+            <td>{{ run.rule_name or '—' }}</td>
+            <td>{{ status_badge(run.status) }}</td>
+            <td class="num">{{ (run.summary.alert_count if run.summary else 0)|num }}</td>
+            <td class="num muted">{{ (run.summary.evaluated_rows if run.summary else 0)|num }}</td>
+            <td class="muted">{{ run.started_at|dt }}</td>
+            <td class="muted">{{ run.completed_at|dt }}</td>
+            <td class="muted">{{ run.initiated_by or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">{{ empty('No analysis runs yet', 'Run a detection pass once transaction data has been imported.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

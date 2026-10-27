@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Not found{% endblock %}
+{% block crumb %}Error 404{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">That record or page does not exist</span></div>
+  <div class="panel__body">
+    <p style="margin-top:0;">The address may be mistyped, or the record may have been removed by a later import.</p>
+  </div>
+  <div class="panel__footer"><a href="{{ url_for('dashboard.overview') }}">Return to the overview</a></div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}Import batch #{{ batch.id }}{% endblock %}
+{% block crumb %}Data Management / Batch #{{ batch.id }}{% endblock %}
+
+{% block content %}
+{% set report = batch.validation_report or {} %}
+<div class="page-header">
+  <div>
+    <h1>Import batch #{{ batch.id }}</h1>
+    <div class="page-header__sub">
+      {{ batch.file_name }} &middot; imported {{ batch.created_at|dt }}
+      {% if batch.imported_by %}by {{ batch.imported_by }}{% endif %} &middot; {{ status_badge(batch.status) }}
+    </div>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn" href="{{ url_for('data_management.index') }}">Back to data management</a>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="stat__label">Rows in file</div><div class="stat__value">{{ batch.row_count|num }}</div></div>
+  <div class="stat"><div class="stat__label">Stored</div><div class="stat__value">{{ batch.imported_rows|num }}</div></div>
+  <div class="stat"><div class="stat__label">Skipped</div><div class="stat__value">{{ batch.rejected_rows|num }}</div>
+    <div class="stat__note">duplicates or unusable rows</div></div>
+  <div class="stat"><div class="stat__label">Date range</div>
+    <div class="stat__value" style="font-size:14px;">{{ report.date_min|date_only }} &rarr; {{ report.date_max|date_only }}</div></div>
+</div>
+
+<div class="split">
+  <div class="panel">
+    <div class="panel__header"><span class="panel__title">Validation report</span></div>
+    <div class="panel__body">
+      {% if report %}
+      <dl class="kv">
+        <dt>Total rows</dt><dd>{{ report.total_rows|num }}</dd>
+        <dt>Total columns</dt><dd>{{ report.total_columns }}</dd>
+        <dt>Duplicate rows found</dt><dd>{{ report.duplicate_rows|num }}</dd>
+        <dt>Rows after cleaning</dt><dd>{{ report.rows_after_cleaning|num }}</dd>
+        <dt>Distinct invoices</dt><dd>{{ report.distinct_invoices|num }}</dd>
+        <dt>Distinct products</dt><dd>{{ report.distinct_products|num }}</dd>
+        <dt>Distinct customers</dt><dd>{{ report.distinct_customers|num }}</dd>
+        <dt>Positive quantity rows</dt><dd>{{ report.positive_quantity_rows|num }}</dd>
+        <dt>Zero or negative quantity rows</dt><dd>{{ report.non_positive_quantity_rows|num }}</dd>
+        <dt>Cancellation rows (C invoices)</dt><dd>{{ report.cancellation_invoice_rows|num }} ({{ report.cancellation_invoice_pct }}%)</dd>
+        <dt>Non-positive unit prices</dt><dd>{{ report.non_positive_price_rows|num }}</dd>
+        <dt>Missing customer IDs</dt><dd>{{ report.missing_customer_rows|num }} ({{ report.missing_customer_pct }}%)</dd>
+      </dl>
+      {% if report.error %}
+      <div class="notice notice--error" style="margin-top:14px;">{{ report.error }}</div>
+      {% endif %}
+      {% else %}
+      <p class="muted" style="margin:0;">No validation report is stored for this batch.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">Missing values by column</span></div>
+      <div class="panel__body panel__body--flush">
+        <table class="data">
+          <thead><tr><th>Column</th><th class="num">Missing</th></tr></thead>
+          <tbody>
+            {% for column, missing in (report.missing_values or {}).items() %}
+            <tr><td class="mono">{{ column }}</td><td class="num">{{ missing|num }}</td></tr>
+            {% else %}
+            <tr><td colspan="2" class="muted" style="padding:14px;">Not recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">Detected columns</span></div>
+      <div class="panel__body panel__body--flush">
+        <table class="data">
+          <thead><tr><th>Column</th><th>Type read by Pandas</th></tr></thead>
+          <tbody>
+            {% for column in report.columns or [] %}
+            <tr><td class="mono">{{ column.name }}</td><td class="muted">{{ column.dtype }}</td></tr>
+            {% else %}
+            <tr><td colspan="2" class="muted" style="padding:14px;">Not recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

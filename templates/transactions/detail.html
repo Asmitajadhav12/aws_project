@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, empty %}
+{% block title %}Invoice {{ invoice_number }}{% endblock %}
+{% block crumb %}Transactions / Invoice {{ invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Invoice {{ invoice_number }}</h1>
+    <div class="page-header__sub">
+      {{ lines|length }} line(s) &middot; {{ invoice_date|dt }} &middot;
+      customer {{ customer_id or 'not recorded' }} &middot; {{ country or 'country unknown' }}
+      {% if is_cancellation %}&middot; <span class="badge badge--muted">Cancellation invoice</span>{% endif %}
+    </div>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn" href="{{ url_for('transactions.index', invoice=invoice_number) }}">Back to search</a>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="stat__label">Value of eligible sale lines</div>
+    <div class="stat__value">{{ sale_total|money }}</div>
+    <div class="stat__note">cancellation lines and non-positive prices excluded</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Lines on invoice</div>
+    <div class="stat__value">{{ lines|length }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat__label">Related alerts</div>
+    <div class="stat__value">{{ alerts|length }}</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Invoice lines</span></div>
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>Stock code</th><th>Description</th><th class="num">Quantity</th>
+              <th class="num">Unit price</th><th class="num">Line value</th><th>Eligible for value rules</th></tr>
+        </thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td class="mono">{{ line.stock_code }}</td>
+            <td>{{ line.description or '—' }}</td>
+            <td class="num {{ 'neg' if line.quantity < 0 }}">{{ line.quantity|num }}</td>
+            <td class="num">{{ line.unit_price|money }}</td>
+            <td class="num">{{ line.line_value|money }}</td>
+            <td>{% if line.is_valid_sale %}<span class="badge badge--reviewed">Yes</span>{% else %}<span class="badge badge--muted">No</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Alerts raised for this invoice</span></div>
+  <div class="panel__body">
+    {% if alerts %}
+      <div class="stack">
+        {% for alert in alerts %}
+        <div class="explanation">
+          <div class="row-between" style="margin-bottom:6px;">
+            <strong>{{ alert.rule_name }}</strong>
+            {{ status_badge(alert.review_status) }}
+          </div>
+          {{ alert.explanation }}
+          <div style="margin-top:8px;">
+            <a class="btn btn--small" href="{{ url_for('alerts.detail', alert_id=alert.id) }}">Open investigation</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      {{ empty('No alerts for this invoice', 'The invoice did not breach any rule at the configuration in force when the analysis last ran.') }}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

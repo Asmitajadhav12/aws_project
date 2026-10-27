@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty %}
+{% block title %}Rule Tuning Lab{% endblock %}
+{% block crumb %}Rule Tuning Lab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Rule Tuning Lab</h1>
+    <div class="page-header__sub">
+      Run one rule across several thresholds and compare how many alerts each one produces.
+      The goal is an alert volume an analyst can actually review, not the lowest possible number.
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Sweep parameters</span></div>
+  <div class="panel__body">
+    <form method="post" action="{{ url_for('rules.tuning_lab') }}" class="filter-bar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field field--wide">
+        <label for="rule_code">Rule</label>
+        <select id="rule_code" name="rule_code">
+          {% for rule in rules %}
+          <option value="{{ rule.rule_code }}" {{ 'selected' if selected == rule.rule_code }}>{{ rule.rule_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field" style="flex:1; min-width:260px;">
+        <label for="thresholds">Threshold values (comma separated)</label>
+        <input type="text" id="thresholds" name="thresholds" value="{{ thresholds_text }}" placeholder="e.g. 100, 250, 500, 1000">
+        <span class="field__hint">For the invoice rule, values are money; for quantity rules, units; for the baseline rule, the IQR multiplier k.</span>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn btn--primary" type="submit">Run sweep</button>
+      </div>
+    </form>
+    {% if error %}<div class="notice notice--error" style="margin-top:12px;">{{ error }}</div>{% endif %}
+  </div>
+  <div class="panel__footer">
+    The sweep evaluates at most {{ row_limit|num }} transaction lines per request to keep the
+    response time predictable. Statistical baselines are recomputed for each threshold.
+  </div>
+</div>
+
+{% if sweep %}
+<div class="panel">
+  <div class="panel__header">
+    <span class="panel__title">Alert volume by threshold</span>
+    <span class="panel__meta">{{ sweep|length }} threshold(s) evaluated</span>
+  </div>
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th class="num">Threshold</th>
+            <th class="num">Alerts</th>
+            <th class="num">Records evaluated</th>
+            <th class="num">Alerts per 1,000</th>
+            <th>Example alert</th>
+            {% if g.user.role == ROLE_ADMIN %}<th></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in sweep %}
+          <tr>
+            <td class="num mono">{{ row.threshold|num }}</td>
+            <td class="num"><strong>{{ row.alert_count|num }}</strong></td>
+            <td class="num muted">{{ row.evaluated_rows|num }}</td>
+            <td class="num">{{ row.alerts_per_1000 }}</td>
+            <td class="muted" style="max-width:420px;">
+              {% if row.sample_alerts %}{{ row.sample_alerts[0].explanation }}{% else %}No alerts at this threshold.{% endif %}
+            </td>
+            {% if g.user.role == ROLE_ADMIN %}
+            <td class="num">
+              <form class="inline-form" method="post" action="{{ url_for('rules.apply_threshold') }}"
+                    data-confirm="Adopt this threshold as the live configuration?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="rule_code" value="{{ selected }}">
+                <input type="hidden" name="parameter" value="{{ row.parameter }}">
+                <input type="hidden" name="value" value="{{ row.threshold }}">
+                <button class="btn btn--small" type="submit">Adopt</button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel__footer">
+    Reading the table: as the threshold rises the alert count falls. Pick the highest threshold
+    that still surfaces the behaviour you are looking for — record the reasoning in your report,
+    because "fewest alerts" is not automatically the best configuration.
+  </div>
+</div>
+{% endif %}
+{% endblock %}

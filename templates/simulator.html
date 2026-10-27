@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Transaction simulator{% endblock %}
+{% block crumb %}Transaction Simulator{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Hypothetical transaction simulator</h1>
+    <div class="page-header__sub">
+      Enter a made-up transaction and see which rules would fire, using the thresholds currently
+      saved in the database. Nothing is written to the database.
+    </div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="panel">
+    <div class="panel__header"><span class="panel__title">Hypothetical values</span></div>
+    <div class="panel__body">
+      <form method="post" action="{{ url_for('simulator.index') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          <div class="field">
+            <label for="quantity">Line quantity</label>
+            <input type="number" step="1" id="quantity" name="quantity" value="{{ values.quantity }}">
+          </div>
+          <div class="field">
+            <label for="unit_price">Unit price</label>
+            <input type="number" step="0.01" id="unit_price" name="unit_price" value="{{ values.unit_price }}">
+          </div>
+          <div class="field">
+            <label for="invoice_value">Total invoice value</label>
+            <input type="number" step="0.01" id="invoice_value" name="invoice_value" value="{{ values.invoice_value }}">
+            <span class="field__hint">Include the other lines on the invoice.</span>
+          </div>
+          <div class="field">
+            <label for="product_median">Product historical median</label>
+            <input type="number" step="0.01" id="product_median" name="product_median" value="{{ values.product_median }}">
+          </div>
+          <div class="field">
+            <label for="product_iqr">Product historical IQR</label>
+            <input type="number" step="0.01" id="product_iqr" name="product_iqr" value="{{ values.product_iqr }}">
+            <span class="field__hint">Q3 &minus; Q1 for that product's sale quantities.</span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--primary" type="submit">Evaluate rules</button>
+        </div>
+      </form>
+      {% if error %}<div class="notice notice--error" style="margin-top:12px;">{{ error }}</div>{% endif %}
+    </div>
+    <div class="panel__footer">
+      Thresholds in force: {{ configuration|length }} enabled rule(s). Change them in Rule Configuration.
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel__header"><span class="panel__title">Rule evaluation</span></div>
+    <div class="panel__body">
+      {% if results %}
+      <div class="stack">
+        {% for result in results %}
+        <div class="explanation">
+          <div class="row-between" style="margin-bottom:6px;">
+            <strong>{{ result.rule }}</strong>
+            {% if result.triggered %}
+            <span class="badge badge--critical">Would flag</span>
+            {% else %}
+            <span class="badge badge--reviewed">Would not flag</span>
+            {% endif %}
+          </div>
+          {{ result.explanation }}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="muted" style="margin:0;">
+        Submit the form to see how each rule evaluates the hypothetical transaction.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% macro status_badge(status) -%}
+  {% if status == 'open' %}<span class="badge badge--open">Open</span>
+  {% elif status == 'under_review' %}<span class="badge badge--review">Under review</span>
+  {% elif status == 'reviewed' %}<span class="badge badge--reviewed">Reviewed</span>
+  {% elif status == 'completed' %}<span class="badge badge--reviewed">Completed</span>
+  {% elif status == 'running' %}<span class="badge badge--review">Running</span>
+  {% elif status == 'failed' %}<span class="badge badge--critical">Failed</span>
+  {% elif status == 'pending' %}<span class="badge badge--open">Pending</span>
+  {% else %}<span class="badge badge--muted">{{ status or 'unknown' }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro empty(title, text) -%}
+  <div class="empty-state">
+    <strong>{{ title }}</strong>
+    {{ text }}
+  </div>
+{%- endmacro %}

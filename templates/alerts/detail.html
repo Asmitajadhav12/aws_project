@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}Alert #{{ alert.id }}{% endblock %}
+{% block crumb %}Alerts / #{{ alert.id }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Alert #{{ alert.id }} &middot; {{ alert.rule_name }}</h1>
+    <div class="page-header__sub">
+      Raised {{ alert.created_at|dt }} by rule {{ alert.rule_code }}
+      {% if alert.version_no %}at configuration version v{{ alert.version_no }}{% endif %}.
+    </div>
+  </div>
+  <div class="page-header__actions">
+    {% if alert.invoice_number %}
+    <a class="btn" href="{{ url_for('transactions.invoice_detail', invoice_number=alert.invoice_number) }}">View invoice</a>
+    {% endif %}
+    <a class="btn" href="{{ url_for('alerts.index') }}">Back to alerts</a>
+  </div>
+</div>
+
+<div class="split">
+  <div>
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">Why this was flagged</span>{{ status_badge(alert.review_status) }}</div>
+      <div class="panel__body">
+        <div class="explanation">{{ alert.explanation }}</div>
+
+        <dl class="kv" style="margin-top:16px;">
+          <dt>Observed value</dt><dd class="mono">{{ alert.observed_value|num }}</dd>
+          <dt>Configured threshold</dt><dd class="mono">{{ alert.threshold_value|num }}</dd>
+          <dt>Invoice</dt><dd class="mono">{{ alert.invoice_number or '—' }}</dd>
+          <dt>Stock code</dt><dd class="mono">{{ alert.stock_code or '—' }}</dd>
+          <dt>Customer</dt><dd>{{ alert.customer_id or 'not recorded in the dataset' }}</dd>
+          <dt>Transaction date</dt><dd>{{ alert.invoice_date|dt }}</dd>
+          <dt>Analysis run</dt><dd><a href="{{ url_for('analysis.run_detail', run_id=alert.analysis_run_id) }}">#{{ alert.analysis_run_id }}</a></dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">Configuration in force at the time</span></div>
+      <div class="panel__body">
+        {% if alert.version_parameters %}
+        <p class="muted" style="margin-top:0;">
+          This snapshot is stored with the alert, so changing the rule later does not
+          alter the explanation above.
+        </p>
+        <table class="data">
+          <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+          <tbody>
+            {% for name, value in alert.version_parameters.items() %}
+            <tr><td class="mono">{{ name }}</td><td class="mono">{{ value }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="muted" style="margin:0;">No rule-version snapshot was stored for this alert.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">Investigation status</span></div>
+      <div class="panel__body">
+        <form method="post" action="{{ url_for('alerts.review', alert_id=alert.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field" style="margin-bottom:12px;">
+            <label for="review_status">Set status</label>
+            <select id="review_status" name="review_status">
+              {% for option in statuses %}
+              <option value="{{ option }}" {{ 'selected' if alert.review_status == option }}>
+                {{ {'open': 'Open', 'under_review': 'Under review', 'reviewed': 'Reviewed'}[option] }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn--primary" type="submit">Update status</button>
+        </form>
+        <p class="muted" style="font-size:12px; margin-bottom:0;">
+          "Reviewed" closes the investigation for this alert. It does not assert that the
+          transaction was fraudulent, nor that it was legitimate — the dataset contains no
+          verified fraud labels.
+        </p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__header"><span class="panel__title">Next steps</span></div>
+      <div class="panel__body">
+        <ul style="margin:0; padding-left:18px; color:var(--text-muted); font-size:13px;">
+          <li>Compare the invoice with the customer's usual order size.</li>
+          <li>Check whether the same product is repeatedly flagged.</li>
+          <li>Use the Rule Tuning Lab to see how many alerts the threshold produces overall.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

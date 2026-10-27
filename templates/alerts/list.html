@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, empty %}
+{% block title %}Alerts{% endblock %}
+{% block crumb %}Alerts &amp; Investigation{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Alerts &amp; investigation</h1>
+    <div class="page-header__sub">
+      Every row is one rule evaluation that breached its threshold. Open an alert to see the
+      observed value, the configured threshold and the rule version that produced it.
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__header"><span class="panel__title">Filter</span><span class="panel__meta">{{ rows|length }} shown (max 200)</span></div>
+  <div class="panel__body">
+    <form method="get" action="{{ url_for('alerts.index') }}" class="filter-bar">
+      <div class="field field--wide"><label for="status">Review status</label>
+        <select id="status" name="status">
+          <option value="">All statuses</option>
+          <option value="open" {{ 'selected' if status == 'open' }}>Open</option>
+          <option value="under_review" {{ 'selected' if status == 'under_review' }}>Under review</option>
+          <option value="reviewed" {{ 'selected' if status == 'reviewed' }}>Reviewed</option>
+        </select></div>
+      <div class="field field--wide"><label for="rule">Rule</label>
+        <select id="rule" name="rule">
+          <option value="">All rules</option>
+          {% for rule in rules %}
+          <option value="{{ rule.rule_code }}" {{ 'selected' if rule_code == rule.rule_code }}>{{ rule.rule_name }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="field"><label>&nbsp;</label>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn--primary" type="submit">Apply</button>
+          <a class="btn" href="{{ url_for('alerts.index') }}">Reset</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>Alert</th><th>Rule</th><th>Invoice</th><th>Customer</th>
+              <th class="num">Observed</th><th class="num">Threshold</th><th>Status</th><th>Raised</th></tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td><a href="{{ url_for('alerts.detail', alert_id=row.id) }}">#{{ row.id }}</a></td>
+            <td>
+              <div>{{ row.rule_name }}</div>
+              <div class="mono muted">{{ row.rule_code }}{% if row.version_no %} &middot; v{{ row.version_no }}{% endif %}</div>
+            </td>
+            <td class="mono">
+              {% if row.invoice_number %}
+              <a href="{{ url_for('transactions.invoice_detail', invoice_number=row.invoice_number) }}">{{ row.invoice_number }}</a>
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ row.customer_id or '—' }}</td>
+            <td class="num">{{ row.observed_value|num }}</td>
+            <td class="num muted">{{ row.threshold_value|num }}</td>
+            <td>{{ status_badge(row.review_status) }}</td>
+            <td class="muted">{{ row.created_at|dt }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8">{{ empty('No alerts match this filter', 'Run a detection pass from Analysis History, or relax the filter.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Overview{% endblock %} &middot; Transaction Behaviour Review</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+{% set ep = request.endpoint or '' %}
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand__mark">TB</span><span class="brand__name">Transaction Review</span>
+      <span class="brand__sub">Rule-based anomaly triage &middot; CDAC PG-DBDA</span>
+    </div>
+
+    <nav class="nav">
+      <a class="nav__link {{ 'is-active' if ep == 'dashboard.overview' }}" href="{{ url_for('dashboard.overview') }}">Overview</a>
+      <a class="nav__link {{ 'is-active' if ep == 'transactions.index' }}" href="{{ url_for('transactions.index') }}">Transactions</a>
+      <a class="nav__link {{ 'is-active' if ep in ['alerts.index', 'alerts.detail'] }}" href="{{ url_for('alerts.index') }}">Alerts &amp; Investigation</a>
+      <a class="nav__link {{ 'is-active' if ep == 'rules.tuning_lab' }}" href="{{ url_for('rules.tuning_lab') }}">Rule Tuning Lab</a>
+
+      <div class="nav__label">Analysis</div>
+      <a class="nav__link {{ 'is-active' if ep == 'insights.cancellations' }}" href="{{ url_for('insights.cancellations') }}">Cancellation Analysis</a>
+      <a class="nav__link {{ 'is-active' if ep == 'insights.product_trends' }}" href="{{ url_for('insights.product_trends') }}">Product Trends</a>
+      <a class="nav__link {{ 'is-active' if ep in ['analysis.history', 'analysis.run_detail'] }}" href="{{ url_for('analysis.history') }}">Analysis History</a>
+      <a class="nav__link {{ 'is-active' if ep == 'simulator.index' }}" href="{{ url_for('simulator.index') }}">Transaction Simulator</a>
+
+      {% if g.user and g.user.role == ROLE_ADMIN %}
+      <div class="nav__label">Administration</div>
+      <a class="nav__link {{ 'is-active' if ep == 'data_management.index' }}" href="{{ url_for('data_management.index') }}">Data Management</a>
+      <a class="nav__link {{ 'is-active' if ep == 'rules.index' }}" href="{{ url_for('rules.index') }}">Rule Configuration</a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar__footer">
+      Rule-based analysis only &middot; flags are review candidates, not confirmed fraud.
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar__crumb">{% block crumb %}Overview{% endblock %}</div>
+      {% if g.user %}
+      <div class="topbar__user">
+        <span>{{ g.user.full_name or g.user.username }}</span>
+        <span class="topbar__role">{{ g.user.role }}</span>
+        <form class="inline-form" method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn--small" type="submit">Sign out</button>
+        </form>
+      </div>
+      {% endif %}
+    </header>
+
+    <main class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="notices">
+          {% for category, message in messages %}
+          <div class="notice notice--{{ category if category in ['success', 'error', 'warning', 'info'] else 'info' }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
